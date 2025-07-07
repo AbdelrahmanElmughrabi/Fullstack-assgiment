@@ -4,123 +4,89 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-dotenv.config();
-
 import { fileURLToPath } from 'url';
+
+dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const API_KEY = process.env.GOLD_API_KEY;
+
+if (!API_KEY) {
+  console.error('Missing GOLD_API_KEY environment variable');
+  process.exit(1);
+}
 
 app.use(cors());
-app.use(express.json());
 
-// Serve static files from the frontend build
-const distPath = path.join(__dirname, '../../dist');
+// Serve React’s build
+const distPath = path.resolve(__dirname, '../../dist');
 app.use(express.static(distPath));
 
-// Fetch gold price (USD/gram) from GoldAPI
 async function fetchGoldPrice() {
-  const apiKey = process.env.GOLD_API_KEY;
-  const url = 'https://www.goldapi.io/api/XAU/USD';
   try {
-    const response = await axios.get(url, {
-      headers: {
-        'x-access-token': apiKey,
-        'Content-Type': 'application/json',
-      },
+    const res = await axios.get('https://www.goldapi.io/api/XAU/USD', {
+      headers: { 'x-access-token': API_KEY }
     });
-    const pricePerOunce = response.data.price;
-    const pricePerGram = pricePerOunce / 31.1035;
-    console.log(`[GoldAPI] Real-time gold price per gram: $${pricePerGram.toFixed(2)}`);
-    return pricePerGram;
-  } catch (error) {
-    console.error('[GoldAPI] Error fetching gold price, using fallback:', error.message);
-    return 75; // fallback value
+    return res.data.price / 31.1035;
+  } catch (e) {
+    console.error('[GoldAPI] Error fetching gold price:', e.message);
+    return 75;
   }
 }
 
-// Calculate product price
 function calculatePrice(popularityScore, weight, goldPrice) {
   return (popularityScore + 1) * weight * goldPrice;
 }
 
-// Get a single product by id
 app.get('/products/:id', async (req, res) => {
   try {
-    const productsPath = path.join(__dirname, '..', 'data', 'products.json');
-    let products = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
+    const products = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/products.json'), 'utf-8'));
     const goldPrice = await fetchGoldPrice();
-
-    products = products.map((product, idx) => ({
-      ...product,
-      id: idx + 1,
-      price: Number(calculatePrice(product.popularityScore, product.weight, goldPrice).toFixed(2)),
-      goldPrice: Number(goldPrice.toFixed(2)),
+    const enriched = products.map((p, i) => ({
+      ...p, id: i + 1,
+      price: Number(calculatePrice(p.popularityScore, p.weight, goldPrice).toFixed(2)),
+      goldPrice: Number(goldPrice.toFixed(2))
     }));
-
-    const id = parseInt(req.params.id);
-    const product = products.find(p => p.id === id);
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
-    }
+    const product = enriched.find(p => p.id === +req.params.id);
+    if (!product) return res.status(404).json({ error: 'Not found' });
     res.json(product);
-  } catch (error) {
-    console.error(error);
+  } catch (e) {
+    console.error(e);
     res.status(500).json({ error: 'Failed to fetch product' });
   }
 });
 
-// Products endpoint with optional filtering
 app.get('/products', async (req, res) => {
   try {
-    const productsPath = path.join(__dirname, '..', 'data', 'products.json');
-    let products = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
+    const products = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/products.json'), 'utf-8'));
     const goldPrice = await fetchGoldPrice();
-
-    products = products.map((product, idx) => ({
-      ...product,
-      id: idx + 1,
-      price: Number(calculatePrice(product.popularityScore, product.weight, goldPrice).toFixed(2)),
-      goldPrice: Number(goldPrice.toFixed(2)),
+    let enriched = products.map((p, i) => ({
+      ...p, id: i + 1,
+      price: Number(calculatePrice(p.popularityScore, p.weight, goldPrice).toFixed(2)),
+      goldPrice: Number(goldPrice.toFixed(2))
     }));
 
     const { minPrice, maxPrice, minPopularity, maxPopularity } = req.query;
-    if (minPrice) products = products.filter(p => p.price >= Number(minPrice));
-    if (maxPrice) products = products.filter(p => p.price <= Number(maxPrice));
-    if (minPopularity) products = products.filter(p => p.popularityScore >= Number(minPopularity));
-    if (maxPopularity) products = products.filter(p => p.popularityScore <= Number(maxPopularity));
+    if (minPrice) enriched = enriched.filter(p => p.price >= +minPrice);
+    if (maxPrice) enriched = enriched.filter(p => p.price <= +maxPrice);
+    if (minPopularity) enriched = enriched.filter(p => p.popularityScore >= +minPopularity);
+    if (maxPopularity) enriched = enriched.filter(p => p.popularityScore <= +maxPopularity);
 
-    res.json(products);
-  } catch (error) {
-    console.error(error);
+    res.json(enriched);
+  } catch (e) {
+    console.error(e);
     res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
 
-// API routes should be defined before the catch-all
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
-
-// Catch-all handler: serve React app for any non-API routes
-// Using Express 4.x compatible syntax
-app.get('*', (req, res) => {
-  // Skip API routes
-  if (req.path.startsWith('/api/') || req.path.startsWith('/products')) {
-    return res.status(404).json({ error: 'Route not found' });
-  }
-  
-  res.sendFile(path.join(distPath, 'index.html'), (err) => {
-    if (err) {
-      console.error('Error serving index.html:', err);
-      res.status(500).send('Server Error');
-    }
-  });
+// **New RegExp catch‑all for SPA (bypasses path-to-regexp)**
+app.get(/^(?!\/products).*/, (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
