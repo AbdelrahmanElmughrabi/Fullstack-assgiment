@@ -1,9 +1,29 @@
 services:
+  # 1. Static site for the frontend build
   - type: web
-    name: fullstack-assignment
-    runtime: node
+    name: frontend
+    runtime: static
+    rootDir: "Fullstack assgiment"
     buildCommand: npm run build
+    staticPublishPath: dist
+    routes:
+      # send any API calls off to the backend service
+      - type: rewrite
+        source: /products/*
+        destination: https://fullstack-backend.onrender.com/products/
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # 2. Web service for the API
+  - type: web
+    name: backend
+    runtime: node
+    rootDir: "Fullstack assgiment"
+    buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
-        value: 20 
+        value: 20
+      - key: GOLD_API_KEY
+        value: $GOLD_API_KEY
