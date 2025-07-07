@@ -1,16 +1,23 @@
 services:
-  # 1. Static site for the frontend build
+  # 1. Static site for the frontend
   - type: web
     name: frontend
     runtime: static
-    rootDir: "Fullstack assgiment"
+    rootDir: "."                   # <-- since your `package.json`, `src/`, etc. live at repo root
     buildCommand: npm run build
     staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: "https://<your-backend-service>.onrender.com"
     routes:
-      # send any API calls off to the backend service
+      # Proxy any /products* calls to your backend
       - type: rewrite
-        source: /products/*
-        destination: https://fullstack-backend.onrender.com/products/
+        source: /products/(.*)
+        destination: https://<your-backend-service>.onrender.com/products/$1
+      - type: rewrite
+        source: /products
+        destination: https://<your-backend-service>.onrender.com/products
+      # All other routes serve index.html
       - type: rewrite
         source: /*
         destination: /index.html
@@ -19,11 +26,11 @@ services:
   - type: web
     name: backend
     runtime: node
-    rootDir: "Fullstack assgiment"
+    rootDir: "."                   # <-- same repo root
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: npm run start:prod
     envVars:
       - key: NODE_VERSION
-        value: 20
+        value: "20"
       - key: GOLD_API_KEY
         value: $GOLD_API_KEY

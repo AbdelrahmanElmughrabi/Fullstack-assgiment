@@ -1,3 +1,5 @@
+// File: src/services/api.ts
+
 import { Product } from '../data/types';
 
 export interface ApiResponse<T> {
@@ -16,12 +18,14 @@ export interface ProductsQueryParams {
   offset?: number;
 }
 
-const API_BASE = 'http://localhost:3001';
+// 🔑 Use Vite’s env var here instead of localhost
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export const api = {
   // GET /products
-  // Fetch a list of products from the backend, optionally filtered by params
-  getProducts: async (params?: ProductsQueryParams): Promise<ApiResponse<Product[]>> => {
+  getProducts: async (
+    params?: ProductsQueryParams
+  ): Promise<ApiResponse<Product[]>> => {
     const url = new URL(`${API_BASE}/products`);
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
@@ -38,28 +42,12 @@ export const api = {
   },
 
   // GET /products/:id
-  // Fetch a single product by ID
   getProductById: async (id: number): Promise<ApiResponse<Product | null>> => {
     const res = await fetch(`${API_BASE}/products/${id}`);
     if (res.status === 404) {
-      return {
-        data: null,
-        status: 404,
-        message: 'Product not found',
-      };
+      return { data: null, status: 404, message: 'Product not found' };
     }
     const data: Product = await res.json();
-    return {
-      data,
-      status: 200,
-      message: 'Product retrieved successfully',
-    };
+    return { data, status: 200, message: 'Product retrieved successfully' };
   },
-};
-
-export const useProductsApi = () => {
-  return {
-    getProducts: api.getProducts,
-    getProductById: api.getProductById,
-  };
 };
