@@ -178,11 +178,3 @@ npm run dev
 - **Other**: GoldAPI (for real-time gold prices)
 
 ---
-
-## Credits
-
-- UI components based on [shadcn/ui](https://ui.shadcn.com/) and [Radix UI](https://www.radix-ui.com/).
-- Carousel powered by [Embla Carousel](https://www.embla-carousel.com/).
-- Gold price data from [GoldAPI](https://www.goldapi.io/).
-
----
