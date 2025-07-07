@@ -99,7 +99,7 @@ app.get('/products', async (req, res) => {
 });
 
 // Catch-all: serve index.html for any non-API route (for React Router)
-app.get('*', (req, res) => {
+app.get('/:path(*)', (req, res) => {
   // If the request starts with /products, skip to next (API route)
   if (req.path.startsWith('/products')) {
     return res.status(404).json({ error: 'API route not found' });
