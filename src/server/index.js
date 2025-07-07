@@ -15,6 +15,10 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 
+// Serve static files from the frontend build
+const distPath = path.join(__dirname, '../../dist');
+app.use(express.static(distPath));
+
 // Fetch gold price (USD/gram) from GoldAPI
 async function fetchGoldPrice() {
   const apiKey = process.env.GOLD_API_KEY;
@@ -94,9 +98,13 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// Root endpoint
-app.get('/', (req, res) => {
-  res.send('Product API is running. Use /products to get product data.');
+// Catch-all: serve index.html for any non-API route (for React Router)
+app.get('*', (req, res) => {
+  // If the request starts with /products, skip to next (API route)
+  if (req.path.startsWith('/products')) {
+    return res.status(404).json({ error: 'API route not found' });
+  }
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 app.listen(PORT, () => {
