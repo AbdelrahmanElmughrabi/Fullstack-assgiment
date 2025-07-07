@@ -2,6 +2,8 @@
 
 A fullstack web application for browsing, filtering, and viewing details of exquisite engagement rings. The app features a modern React frontend with a Node.js/Express backend, real-time gold price integration, and a beautiful, responsive UI.
 
+Note: This project was a fullstack dev assgiment
+
 ---
 
 ## Table of Contents
@@ -184,11 +186,3 @@ npm run dev
 - Gold price data from [GoldAPI](https://www.goldapi.io/).
 
 ---
-
-## License
-
-MIT (or specify your license here)
-
----
-
-**Feel free to customize this README further for your needs!**
