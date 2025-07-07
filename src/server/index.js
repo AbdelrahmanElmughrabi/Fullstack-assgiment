@@ -14,6 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
+app.use(express.json());
 
 // Serve static files from the frontend build
 const distPath = path.join(__dirname, '../../dist');
@@ -98,15 +99,28 @@ app.get('/products', async (req, res) => {
   }
 });
 
-// Catch-all: serve index.html for any non-API route (for React Router)
-app.get('/:path(*)', (req, res) => {
-  // If the request starts with /products, skip to next (API route)
-  if (req.path.startsWith('/products')) {
-    return res.status(404).json({ error: 'API route not found' });
+// API routes should be defined before the catch-all
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Catch-all handler: serve React app for any non-API routes
+// Using Express 4.x compatible syntax
+app.get('*', (req, res) => {
+  // Skip API routes
+  if (req.path.startsWith('/api/') || req.path.startsWith('/products')) {
+    return res.status(404).json({ error: 'Route not found' });
   }
-  res.sendFile(path.join(distPath, 'index.html'));
+  
+  res.sendFile(path.join(distPath, 'index.html'), (err) => {
+    if (err) {
+      console.error('Error serving index.html:', err);
+      res.status(500).send('Server Error');
+    }
+  });
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
