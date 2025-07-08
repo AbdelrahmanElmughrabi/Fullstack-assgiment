@@ -2,7 +2,7 @@
 
 A fullstack web application for browsing, filtering, and viewing details of exquisite engagement rings. The app features a modern React frontend with a Node.js/Express backend, real-time gold price integration, and a beautiful, responsive UI.
 
-Note: This project was a fullstack dev assgiment
+Note: This project was a fullstack dev assgiment and I have attached a photo for reference, found in the [image for reference folder](./Image%20for%20reference/).
 
 ---
 
