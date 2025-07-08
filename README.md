@@ -160,6 +160,12 @@ npm run dev
 ```
 - The frontend runs on [http://localhost:8080](http://localhost:8080) by default.
 
+
+You can start both using
+```bash
+npm start
+```
+
 ---
 
 ## Scripts
